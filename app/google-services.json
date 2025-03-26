@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "629617223459",
+    "project_id": "tpda1-593bb",
+    "storage_bucket": "tpda1-593bb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:629617223459:android:c8e4608345def6397e0e96",
+        "android_client_info": {
+          "package_name": "com.example.tpda1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCsMDoAhWknA-IeFXoTONeCKHfV-PJ3nik"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
