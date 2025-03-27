@@ -17,7 +17,6 @@ import java.util.Collections;
 @RestController
 public class AuthenticationController {
     private final JwtService jwtService;
-
     private final AuthenticationService authenticationService;
 
     public AuthenticationController(JwtService jwtService, AuthenticationService authenticationService) {
@@ -31,14 +30,12 @@ public class AuthenticationController {
             User registeredUser = authenticationService.signup(registerUserDto);
             return ResponseEntity.status(HttpStatus.CREATED).body(registeredUser);
         } catch (RuntimeException e) {
-            // Capturar la excepción si el correo ya está registrado y devolver un mensaje de error
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Collections.singletonMap("error", e.getMessage()));
         }
     }
 
-
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> authenticate(@RequestBody LoginUserDto loginUserDto){
+    public ResponseEntity<LoginResponse> authenticate(@RequestBody LoginUserDto loginUserDto) {
         User authenticatedUser = authenticationService.authenticate(loginUserDto);
         String jwtToken = jwtService.generateToken(authenticatedUser);
         LoginResponse loginResponse = new LoginResponse(jwtToken, jwtService.getExpirationTime());
@@ -62,6 +59,28 @@ public class AuthenticationController {
             return ResponseEntity.ok("Verification code sent");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestParam("email") String email) {
+        try {
+            authenticationService.generatePasswordResetCode(email);
+            return ResponseEntity.ok("Password reset code sent to email: " + email);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestParam("email") String email,
+                                           @RequestParam("code") String code,
+                                           @RequestParam("newPassword") String newPassword) {
+        try {
+            authenticationService.resetPasswordWithCode(email, code, newPassword);
+            return ResponseEntity.ok("Password has been reset successfully");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
         }
     }
 }

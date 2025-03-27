@@ -102,29 +102,71 @@ public class AuthenticationService {
         }
     }
 
-    private void sendVerificationEmail(User user) { //TODO: Update with company logo
+    // Generar un código de recuperación de contraseña
+    public String generatePasswordResetCode(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Generar un código de 6 dígitos
+        String code = String.format("%06d", new Random().nextInt(999999));
+        user.setPasswordResetToken(code);
+        user.setPasswordResetTokenExpiresAt(LocalDateTime.now().plusMinutes(15)); // Código válido por 15 minutos
+        userRepository.save(user);
+
+        // Enviar el código por correo
+        sendPasswordResetEmail(user, code);
+
+        return code;
+    }
+
+    // Restablecer la contraseña usando el código
+    public void resetPasswordWithCode(String email, String code, String newPassword) {
+        // Buscar al usuario por correo electrónico
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    
+        // Validar el código de recuperación
+        if (user.getPasswordResetToken() == null || !user.getPasswordResetToken().equals(code)) {
+            throw new RuntimeException("Invalid code");
+        }
+    
+        // Validar si el código ha expirado
+        if (user.getPasswordResetTokenExpiresAt() == null || user.getPasswordResetTokenExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Code has expired");
+        }
+    
+        // Actualizar la contraseña del usuario
+        user.setPassword(passwordEncoder.encode(newPassword));
+    
+        // Limpiar el código de recuperación y su fecha de expiración
+        user.setPasswordResetToken(null);
+        user.setPasswordResetTokenExpiresAt(null);
+    
+        // Guardar los cambios en la base de datos
+        userRepository.save(user);
+    }
+
+    private void sendVerificationEmail(User user) {
         String subject = "Account Verification";
         String verificationCode = "VERIFICATION CODE " + user.getVerificationCode();
-        String htmlMessage = "<html>"
-                + "<body style=\"font-family: Arial, sans-serif;\">"
-                + "<div style=\"background-color: #f5f5f5; padding: 20px;\">"
-                + "<h2 style=\"color: #333;\">Welcome to our app!</h2>"
-                + "<p style=\"font-size: 16px;\">Please enter the verification code below to continue:</p>"
-                + "<div style=\"background-color: #fff; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1);\">"
-                + "<h3 style=\"color: #333;\">Verification Code:</h3>"
-                + "<p style=\"font-size: 18px; font-weight: bold; color: #007bff;\">" + verificationCode + "</p>"
-                + "</div>"
-                + "</div>"
-                + "</body>"
-                + "</html>";
-
+        String body = "Your verification code is: " + verificationCode;
         try {
-            emailService.sendVerificationEmail(user.getEmail(), subject, htmlMessage);
+            emailService.sendVerificationEmail(user.getEmail(), subject, body);
         } catch (MessagingException e) {
-            // Handle email sending exception
             e.printStackTrace();
         }
     }
+
+    private void sendPasswordResetEmail(User user, String code) {
+        String subject = "Password Reset Request";
+        String body = "Use the following code to reset your password: " + code;
+        try {
+            emailService.sendVerificationEmail(user.getEmail(), subject, body);
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        }
+    }
+
     private String generateVerificationCode() {
         Random random = new Random();
         int code = random.nextInt(900000) + 100000;
