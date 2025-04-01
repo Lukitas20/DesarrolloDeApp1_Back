@@ -10,4 +10,7 @@ import java.util.Optional;
 public interface UserRepository extends CrudRepository<User, Long> {
     Optional<User> findByEmail(String email);
     Optional<User> findByVerificationCode(String verificationCode);
+
+    // Nuevo método para buscar usuarios por el token de recuperación de contraseña
+    Optional<User> findByPasswordResetToken(String passwordResetToken);
 }

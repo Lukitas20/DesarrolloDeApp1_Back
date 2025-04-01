@@ -18,27 +18,40 @@ public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
+
     @Column(unique = true, nullable = false)
     private String username;
+
     @Column(unique = true, nullable = false)
     private String email;
+
     @Column(nullable = false)
     private String password;
 
     @Column(name = "verification_code")
     private String verificationCode;
+
     @Column(name = "verification_expiration")
     private LocalDateTime verificationCodeExpiresAt;
+
     private boolean enabled;
 
-    //constructor for creating an unverified user
+    // Campos para recuperación de contraseña
+    @Column(name = "password_reset_token")
+    private String passwordResetToken;
+
+    @Column(name = "password_reset_token_expires_at")
+    private LocalDateTime passwordResetTokenExpiresAt;
+
+    // Constructor para crear un usuario no verificado
     public User(String username, String email, String password) {
         this.username = username;
         this.email = email;
         this.password = password;
     }
-    //default constructor
-    public User(){
+
+    // Constructor por defecto
+    public User() {
     }
 
     @Override
@@ -46,7 +59,7 @@ public class User implements UserDetails {
         return List.of();
     }
 
-    //TODO: add proper boolean checks
+    // TODO: agregar validaciones adecuadas
     @Override
     public boolean isAccountNonExpired() {
         return true;
