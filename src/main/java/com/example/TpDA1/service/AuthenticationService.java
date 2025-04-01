@@ -90,9 +90,11 @@ public class AuthenticationService {
         Optional<User> optionalUser = userRepository.findByEmail(email);
         if (optionalUser.isPresent()) {
             User user = optionalUser.get();
-            if (user.isEnabled()) {
+            // Remove this check to allow resending regardless of verification status
+            /* if (user.isEnabled()) {
                 throw new RuntimeException("Account is already verified");
-            }
+            } */
+            
             user.setVerificationCode(generateVerificationCode());
             user.setVerificationCodeExpiresAt(LocalDateTime.now().plusHours(1));
             sendVerificationEmail(user);
@@ -119,30 +121,47 @@ public class AuthenticationService {
         return code;
     }
 
-    // Restablecer la contraseña usando el código
-    public void resetPasswordWithCode(String email, String code, String newPassword) {
-        // Buscar al usuario por correo electrónico
+    public boolean verifyPasswordResetCode(String email, String code) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new RuntimeException("User not found"));
     
-        // Validar el código de recuperación
+        // Check if code is valid
         if (user.getPasswordResetToken() == null || !user.getPasswordResetToken().equals(code)) {
-            throw new RuntimeException("Invalid code");
+            return false;
         }
     
-        // Validar si el código ha expirado
-        if (user.getPasswordResetTokenExpiresAt() == null || user.getPasswordResetTokenExpiresAt().isBefore(LocalDateTime.now())) {
+        // Check if code has expired
+        if (user.getPasswordResetTokenExpiresAt() == null || 
+            user.getPasswordResetTokenExpiresAt().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Code has expired");
         }
     
-        // Actualizar la contraseña del usuario
-        user.setPassword(passwordEncoder.encode(newPassword));
+        return true;
+    }
+
+    // Restablecer la contraseña usando el código
+    public void resetPasswordWithCode(String email, String code, String newPassword) {
+        // Validate if the code is correct first
+        if (!verifyPasswordResetCode(email, code)) {
+            throw new RuntimeException("Invalid code");
+        }
     
-        // Limpiar el código de recuperación y su fecha de expiración
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+    
+        // Password validation 
+        if (newPassword.length() < 8) {
+            throw new RuntimeException("Password must be at least 8 characters long");
+        }
+    
+        // Check if password contains at least one number and one letter
+        if (!newPassword.matches(".*[0-9].*") || !newPassword.matches(".*[a-zA-Z].*")) {
+            throw new RuntimeException("Password must contain at least one number and one letter");
+        }
+    
+        user.setPassword(passwordEncoder.encode(newPassword));
         user.setPasswordResetToken(null);
         user.setPasswordResetTokenExpiresAt(null);
-    
-        // Guardar los cambios en la base de datos
         userRepository.save(user);
     }
 

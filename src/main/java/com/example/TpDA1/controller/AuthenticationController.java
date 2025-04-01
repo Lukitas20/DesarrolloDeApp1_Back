@@ -1,8 +1,6 @@
 package com.example.TpDA1.controller;
 
-import com.example.TpDA1.dto.LoginUserDto;
-import com.example.TpDA1.dto.RegisterUserDto;
-import com.example.TpDA1.dto.VerifyUserDto;
+import com.example.TpDA1.dto.*;
 import com.example.TpDA1.model.User;
 import com.example.TpDA1.responses.LoginResponse;
 import com.example.TpDA1.service.AuthenticationService;
@@ -53,32 +51,72 @@ public class AuthenticationController {
     }
 
     @PostMapping("/resend")
-    public ResponseEntity<?> resendVerificationCode(@RequestParam String email) {
+    public ResponseEntity<?> resendVerificationCode(@RequestBody ResendVerificationDto resendVerificationDto) {
         try {
-            authenticationService.resendVerificationCode(email);
-            return ResponseEntity.ok("Verification code sent");
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@RequestParam("email") String email) {
-        try {
-            authenticationService.generatePasswordResetCode(email);
-            return ResponseEntity.ok("Password reset code sent to email: " + email);
+            // Check which type of code to resend
+            if ("passwordReset".equals(resendVerificationDto.getCodeType())) {
+                authenticationService.generatePasswordResetCode(resendVerificationDto.getEmail());
+                return ResponseEntity.ok(Collections.singletonMap("message",
+                        "New password reset code sent to email: " + resendVerificationDto.getEmail()));
+            } else {
+                // Default to verification code
+                authenticationService.resendVerificationCode(resendVerificationDto.getEmail());
+                return ResponseEntity.ok(Collections.singletonMap("message",
+                        "New verification code sent to email: " + resendVerificationDto.getEmail()));
+            }
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
         }
     }
 
-    @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestParam("email") String email,
-                                           @RequestParam("code") String code,
-                                           @RequestParam("newPassword") String newPassword) {
+    // Step 1: Request password reset code
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordDto forgotPasswordDto) {
         try {
-            authenticationService.resetPasswordWithCode(email, code, newPassword);
-            return ResponseEntity.ok("Password has been reset successfully");
+            authenticationService.generatePasswordResetCode(forgotPasswordDto.getEmail());
+            return ResponseEntity.ok(Collections.singletonMap("message", 
+                "Password reset code sent to email: " + forgotPasswordDto.getEmail()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
+        }
+    }
+
+    // Step 2: Verify reset code
+    @PostMapping("/verify-reset-code")
+    public ResponseEntity<?> verifyResetCode(@RequestBody VerifyResetCodeDto verifyResetCodeDto) {
+        try {
+            boolean isValid = authenticationService.verifyPasswordResetCode(
+                verifyResetCodeDto.getEmail(), 
+                verifyResetCodeDto.getCode()
+            );
+            
+            if (isValid) {
+                return ResponseEntity.ok(Collections.singletonMap("verified", true));
+            } else {
+                return ResponseEntity.badRequest().body(Collections.singletonMap("error", "Invalid code"));
+            }
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
+        }
+    }
+
+    // Step 3: Reset password with new password and confirmation
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordDto resetPasswordDto) {
+        try {
+            // Validate passwords match
+            if (!resetPasswordDto.getNewPassword().equals(resetPasswordDto.getConfirmPassword())) {
+                return ResponseEntity.badRequest()
+                    .body(Collections.singletonMap("error", "Passwords do not match"));
+            }
+
+            authenticationService.resetPasswordWithCode(
+                resetPasswordDto.getEmail(),
+                resetPasswordDto.getCode(),
+                resetPasswordDto.getNewPassword()
+            );
+            
+            return ResponseEntity.ok(Collections.singletonMap("message", "Password has been reset successfully"));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
         }
