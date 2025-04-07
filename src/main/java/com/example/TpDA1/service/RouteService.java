@@ -57,4 +57,8 @@ public class RouteService {
 
         return routeRepository.save(route);
     }
+    public Route createRoute(Route route) {
+        return routeRepository.save(route);
+    }
+
 }
