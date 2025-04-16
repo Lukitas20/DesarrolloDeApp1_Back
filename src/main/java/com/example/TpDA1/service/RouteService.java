@@ -1,13 +1,16 @@
 package com.example.TpDA1.service;
 
+import com.example.TpDA1.dto.RouteHistoryDto;
 import com.example.TpDA1.model.Route;
 import com.example.TpDA1.model.User;
 import com.example.TpDA1.repository.RouteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -57,6 +60,7 @@ public class RouteService {
 
         return routeRepository.save(route);
     }
+    
     public Route createRoute(Route route) {
         return routeRepository.save(route);
     }
@@ -76,5 +80,60 @@ public class RouteService {
         route.setStatus("COMPLETED");
         route.setCompletedAt(LocalDateTime.now());
         return routeRepository.save(route);
+    }
+
+    public List<RouteHistoryDto> getDriverRouteHistory(User driver) {
+        // Usa el método existente y filtra con Java Stream
+        List<Route> driverRoutes = routeRepository.findByDriver(driver);
+        
+        List<Route> completedRoutes = driverRoutes.stream()
+                .filter(route -> "COMPLETED".equals(route.getStatus()))
+                .sorted((r1, r2) -> {
+                    if (r1.getCompletedAt() == null) return 1;
+                    if (r2.getCompletedAt() == null) return -1;
+                    return r2.getCompletedAt().compareTo(r1.getCompletedAt());
+                })
+                .collect(Collectors.toList());
+        
+        return completedRoutes.stream()
+                .map(this::convertToHistoryDto)
+                .collect(Collectors.toList());
+    }
+
+    private RouteHistoryDto convertToHistoryDto(Route route) {
+        // Calcular tiempo de finalización
+        Duration completionDuration = null;
+        String formattedTime = "N/A";
+        
+        if (route.getAssignedAt() != null && route.getCompletedAt() != null) {
+            completionDuration = Duration.between(route.getAssignedAt(), route.getCompletedAt());
+            long hours = completionDuration.toHours();
+            long minutes = completionDuration.toMinutesPart();
+            formattedTime = hours + " horas " + minutes + " minutos";
+        }
+        
+        // Calcular velocidad promedio (si hay información suficiente)
+        Double averageSpeed = null;
+        if (completionDuration != null && route.getDistance() != null && 
+                !completionDuration.isZero()) {
+            double hours = completionDuration.toMinutes() / 60.0;
+            averageSpeed = route.getDistance() / hours;
+        }
+        
+        // Calcular pago basado en la distancia (ejemplo: $10 por km)
+        Double calculatedPayment = route.getDistance() != null ? route.getDistance() * 10 : 0.0;
+        
+        return RouteHistoryDto.builder()
+                .routeId(route.getId())
+                .origin(route.getOrigin())
+                .destination(route.getDestination())
+                .distance(route.getDistance())
+                .assignedAt(route.getAssignedAt())
+                .completedAt(route.getCompletedAt())
+                .completionTime(formattedTime)
+                .payment(calculatedPayment)
+                .status(route.getStatus())
+                .averageSpeed(averageSpeed)
+                .build();
     }
 }

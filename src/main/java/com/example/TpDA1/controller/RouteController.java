@@ -1,5 +1,6 @@
 package com.example.TpDA1.controller;
 
+import com.example.TpDA1.dto.RouteHistoryDto;
 import com.example.TpDA1.model.Route;
 import com.example.TpDA1.model.User;
 import com.example.TpDA1.service.RouteService;
@@ -46,5 +47,11 @@ public class RouteController {
             @PathVariable("routeId") Long routeId,
             @AuthenticationPrincipal User driver) {
         return ResponseEntity.ok(routeService.completeRoute(routeId, driver));
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<List<RouteHistoryDto>> getRouteHistory(
+            @AuthenticationPrincipal User driver) {
+        return ResponseEntity.ok(routeService.getDriverRouteHistory(driver));
 }
 }
