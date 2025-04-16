@@ -61,4 +61,20 @@ public class RouteService {
         return routeRepository.save(route);
     }
 
+    public Route completeRoute(Long routeId, User driver) {
+        Route route = routeRepository.findById(routeId)
+                .orElseThrow(() -> new RuntimeException("Route not found"));
+        
+        if (route.getDriver() == null || !route.getDriver().getId().equals(driver.getId())) {
+            throw new RuntimeException("This route is not assigned to you");
+        }
+        
+        if (!"ASSIGNED".equals(route.getStatus())) {
+            throw new RuntimeException("Only assigned routes can be completed");
+        }
+        
+        route.setStatus("COMPLETED");
+        route.setCompletedAt(LocalDateTime.now());
+        return routeRepository.save(route);
+    }
 }

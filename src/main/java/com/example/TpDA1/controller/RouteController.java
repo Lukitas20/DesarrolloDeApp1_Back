@@ -36,8 +36,15 @@ public class RouteController {
     }
     @PostMapping("/{routeId}/assign")
     public ResponseEntity<Route> assignRoute(
-            @PathVariable Long routeId,
+            @PathVariable("routeId") Long routeId,
             @AuthenticationPrincipal User driver) {
         return ResponseEntity.ok(routeService.assignRouteToDriver(routeId, driver));
     }
+
+    @PostMapping("/{routeId}/complete")
+    public ResponseEntity<Route> completeRoute(
+            @PathVariable("routeId") Long routeId,
+            @AuthenticationPrincipal User driver) {
+        return ResponseEntity.ok(routeService.completeRoute(routeId, driver));
+}
 }
