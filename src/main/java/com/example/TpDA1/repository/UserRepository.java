@@ -13,4 +13,7 @@ public interface UserRepository extends CrudRepository<User, Long> {
 
     // Nuevo método para buscar usuarios por el token de recuperación de contraseña
     Optional<User> findByPasswordResetToken(String passwordResetToken);
+
+    // bauti insano style
+    Optional<User> findByUsername(String username);
 }
