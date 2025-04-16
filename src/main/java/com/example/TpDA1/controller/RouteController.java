@@ -49,8 +49,15 @@ public class RouteController {
         return ResponseEntity.ok(routeService.completeRoute(routeId, driver));
     }
 
+    @PostMapping("/{routeId}/cancel")
+    public ResponseEntity<Route> cancelRoute(
+            @PathVariable("routeId") Long routeId,
+            @AuthenticationPrincipal User driver) {
+        return ResponseEntity.ok(routeService.cancelRoute(routeId, driver));
+    }
+
     @GetMapping("/history")
-    public ResponseEntity<List<RouteHistoryDto>> getRouteHistory(
+    public ResponseEntity<List<RouteHistoryDto>> getRouteHistory(   
             @AuthenticationPrincipal User driver) {
         return ResponseEntity.ok(routeService.getDriverRouteHistory(driver));
 }

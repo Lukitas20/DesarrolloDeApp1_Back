@@ -136,4 +136,24 @@ public class RouteService {
                 .averageSpeed(averageSpeed)
                 .build();
     }
+
+    public Route cancelRoute(Long routeId, User driver) {
+        Route route = routeRepository.findById(routeId)
+                .orElseThrow(() -> new RuntimeException("Route not found"));
+        
+        if (route.getDriver() == null || !route.getDriver().getId().equals(driver.getId())) {
+            throw new RuntimeException("This route is not assigned to you");
+        }
+        
+        if (!"ASSIGNED".equals(route.getStatus())) {
+            throw new RuntimeException("Only assigned routes can be canceled");
+        }
+        
+        // Volver a estado disponible
+        route.setStatus("AVAILABLE");
+        route.setDriver(null);
+        route.setAssignedAt(null);
+        
+        return routeRepository.save(route);
+    }
 }
