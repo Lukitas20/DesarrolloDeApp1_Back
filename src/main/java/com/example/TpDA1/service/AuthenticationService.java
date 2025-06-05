@@ -3,11 +3,16 @@ package com.example.TpDA1.service;
 import com.example.TpDA1.dto.LoginUserDto;
 import com.example.TpDA1.dto.RegisterUserDto;
 import com.example.TpDA1.dto.VerifyUserDto;
+import com.example.TpDA1.exception.AccountNotVerifiedException;
+import com.example.TpDA1.exception.InvalidCredentialsException;
+import com.example.TpDA1.exception.UserNotFoundException;
+import com.example.TpDA1.exception.UsernameAlreadyExistsException;
 import com.example.TpDA1.model.User;
 import com.example.TpDA1.repository.UserRepository;
 import jakarta.mail.MessagingException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -35,10 +40,14 @@ public class AuthenticationService {
     }
 
     public User signup(RegisterUserDto input) {
-        Optional<User> existingUser = userRepository.findByEmail(input.getEmail());
+        Optional<User> existingUserByEmail = userRepository.findByEmail(input.getEmail());
+        if (existingUserByEmail.isPresent()) {
+            throw new RuntimeException("El mail ya esta registrado.");
+        }
 
-        if (existingUser.isPresent()) {
-            throw new RuntimeException("The email is already registered.");
+        Optional<User> existingUserByUsername = userRepository.findByUsername(input.getUsername());
+        if (existingUserByUsername.isPresent()) {
+            throw new UsernameAlreadyExistsException("El usuario ya esta registrado.");
         }
 
         User user = new User(input.getUsername(), input.getEmail(), passwordEncoder.encode(input.getPassword()));
@@ -49,19 +58,25 @@ public class AuthenticationService {
         return userRepository.save(user);
     }
 
+
     public User authenticate(LoginUserDto input) {
         User user = userRepository.findByUsername(input.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado."));
 
         if (!user.isEnabled()) {
-            throw new RuntimeException("Account not verified. Please verify your account.");
+            throw new AccountNotVerifiedException("Usuario no verificado.");
         }
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        input.getUsername(),
-                        input.getPassword()
-                )
-        );
+
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            input.getUsername(),
+                            input.getPassword()
+                    )
+            );
+        } catch (AuthenticationException ex) {
+            throw new InvalidCredentialsException("Contraseña incorrectos.");
+        }
 
         return user;
     }
@@ -71,7 +86,7 @@ public class AuthenticationService {
         if (optionalUser.isPresent()) {
             User user = optionalUser.get();
             if (user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())) {
-                throw new RuntimeException("Verification code has expired");
+                throw new RuntimeException("Codigo de verificacion expirado.");
             }
             if (user.getVerificationCode().equals(input.getVerificationCode())) {
                 user.setEnabled(true);
@@ -79,10 +94,10 @@ public class AuthenticationService {
                 user.setVerificationCodeExpiresAt(null);
                 userRepository.save(user);
             } else {
-                throw new RuntimeException("Invalid verification code");
+                throw new RuntimeException("Codigo invalido");
             }
         } else {
-            throw new RuntimeException("User not found");
+            throw new RuntimeException("Usuario no encontrado.");
         }
     }
 
@@ -100,14 +115,14 @@ public class AuthenticationService {
             sendVerificationEmail(user);
             userRepository.save(user);
         } else {
-            throw new RuntimeException("User not found");
+            throw new RuntimeException("Usuario no encontrado.");
         }
     }
 
     // Generar un código de recuperación de contraseña
     public String generatePasswordResetCode(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado."));
 
         // Generar un código de 6 dígitos
         String code = String.format("%06d", new Random().nextInt(999999));
@@ -123,7 +138,7 @@ public class AuthenticationService {
 
     public boolean verifyPasswordResetCode(String email, String code) {
         User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado."));
     
         // Check if code is valid
         if (user.getPasswordResetToken() == null || !user.getPasswordResetToken().equals(code)) {
