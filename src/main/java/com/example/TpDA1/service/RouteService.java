@@ -10,9 +10,13 @@ import com.example.TpDA1.repository.RouteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -171,7 +175,16 @@ public class RouteService {
         Incident incident = new Incident();
         incident.setType(dto.getType());
         incident.setDescription(dto.getDescription());
-        incident.setPhotoUrl(dto.getPhotoUrl());
+        try {
+            if (dto.getPhoto() != null && !dto.getPhoto().isEmpty()) {
+                // Guardar en base de datos
+                incident.setPhoto(dto.getPhoto().getBytes());
+                // Guardar en carpeta local
+                saveImageToLocalFolder(dto.getPhoto());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to process incident photo", e);
+        }
         incident.setRoute(route);
         incidentRepository.save(incident);
         // Set route status to 'finalizado'
@@ -179,5 +192,16 @@ public class RouteService {
         route.setCompletedAt(java.time.LocalDateTime.now());
         routeRepository.save(route);
         return incident;
+    }
+
+    private void saveImageToLocalFolder(org.springframework.web.multipart.MultipartFile file) throws IOException {
+        String uploadDir = "uploads";
+        File dir = new File(uploadDir);
+        if (!dir.exists()) dir.mkdirs();
+        String uniqueName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+        File savedFile = new File(dir, uniqueName);
+        try (FileOutputStream fos = new FileOutputStream(savedFile)) {
+            fos.write(file.getBytes());
+        }
     }
 }

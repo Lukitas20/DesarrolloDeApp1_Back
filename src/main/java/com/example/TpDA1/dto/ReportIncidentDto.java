@@ -1,9 +1,11 @@
 package com.example.TpDA1.dto;
 
+import org.springframework.web.multipart.MultipartFile;
+
 public class ReportIncidentDto {
     private String type;
     private String description;
-    private String photoUrl; // Assume frontend uploads photo and provides URL
+    private MultipartFile photo; // Assume frontend uploads photo as a file
     private Long routeId;
 
     // Getters and setters
@@ -11,8 +13,8 @@ public class ReportIncidentDto {
     public void setType(String type) { this.type = type; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-    public String getPhotoUrl() { return photoUrl; }
-    public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
+    public MultipartFile getPhoto() { return photo; }
+    public void setPhoto(MultipartFile photo) { this.photo = photo; }
     public Long getRouteId() { return routeId; }
     public void setRouteId(Long routeId) { this.routeId = routeId; }
 }

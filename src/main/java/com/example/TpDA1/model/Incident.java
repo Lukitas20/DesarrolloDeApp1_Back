@@ -10,7 +10,9 @@ public class Incident {
 
     private String type;
     private String description;
-    private String photoUrl;
+
+    @Lob
+    private byte[] photo;
 
     @ManyToOne
     @JoinColumn(name = "route_id")
@@ -23,8 +25,8 @@ public class Incident {
     public void setType(String type) { this.type = type; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-    public String getPhotoUrl() { return photoUrl; }
-    public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
+    public byte[] getPhoto() { return photo; }
+    public void setPhoto(byte[] photo) { this.photo = photo; }
     public Route getRoute() { return route; }
     public void setRoute(Route route) { this.route = route; }
 }

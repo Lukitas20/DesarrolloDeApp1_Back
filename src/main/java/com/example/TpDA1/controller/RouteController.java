@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -64,9 +65,9 @@ public class RouteController {
         return ResponseEntity.ok(routeService.getDriverRouteHistory(driver));
     }
 
-    @PostMapping("/report-incident")
+    @PostMapping(value = "/report-incident", consumes = "multipart/form-data")
     public ResponseEntity<Incident> reportIncident(
-            @RequestBody ReportIncidentDto dto,
+            @ModelAttribute ReportIncidentDto dto,
             @AuthenticationPrincipal User driver) {
         Incident incident = routeService.reportIncident(dto, driver);
         return ResponseEntity.ok(incident);
