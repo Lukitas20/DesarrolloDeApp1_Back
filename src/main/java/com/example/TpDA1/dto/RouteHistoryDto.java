@@ -5,7 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Data
@@ -25,4 +24,5 @@ public class RouteHistoryDto {
     // Campos adicionales que podrían ser útiles
     private String status;
     private Double averageSpeed; // km/h
+    private ReviewDto review;
 }

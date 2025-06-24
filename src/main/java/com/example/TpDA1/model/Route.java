@@ -42,6 +42,9 @@ public class Route {
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
+    @OneToOne
+    @JoinColumn(name = "review_id")
+    private Review review;
 
     @PrePersist
     protected void onCreate() {

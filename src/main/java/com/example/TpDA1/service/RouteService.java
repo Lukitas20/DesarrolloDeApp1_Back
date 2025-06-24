@@ -1,5 +1,6 @@
 package com.example.TpDA1.service;
 
+import com.example.TpDA1.dto.ReviewDto;
 import com.example.TpDA1.dto.RouteHistoryDto;
 import com.example.TpDA1.model.Route;
 import com.example.TpDA1.model.User;
@@ -7,6 +8,9 @@ import com.example.TpDA1.repository.RouteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -101,28 +105,40 @@ public class RouteService {
     }
 
     private RouteHistoryDto convertToHistoryDto(Route route) {
-        // Calcular tiempo de finalización
         Duration completionDuration = null;
         String formattedTime = "N/A";
-        
+
         if (route.getAssignedAt() != null && route.getCompletedAt() != null) {
             completionDuration = Duration.between(route.getAssignedAt(), route.getCompletedAt());
             long hours = completionDuration.toHours();
             long minutes = completionDuration.toMinutesPart();
             formattedTime = hours + " horas " + minutes + " minutos";
         }
-        
-        // Calcular velocidad promedio (si hay información suficiente)
+
         Double averageSpeed = null;
-        if (completionDuration != null && route.getDistance() != null && 
+        if (completionDuration != null && route.getDistance() != null &&
                 !completionDuration.isZero()) {
             double hours = completionDuration.toMinutes() / 60.0;
             averageSpeed = route.getDistance() / hours;
         }
-        
-        // Calcular pago basado en la distancia (ejemplo: $10 por km)
+
         Double calculatedPayment = route.getDistance() != null ? route.getDistance() * 10 : 0.0;
-        
+
+        ReviewDto reviewDto = null;
+        if (route.getReview() != null) {
+            reviewDto = new ReviewDto();
+            reviewDto.setRouteId(route.getId());
+            reviewDto.setComentario(route.getReview().getComentario());
+            reviewDto.setPuntuacion(route.getReview().getPuntuacion());
+
+            String imagenPath = route.getReview().getImagenUrl();
+            if (imagenPath != null && !imagenPath.isBlank()) {
+                String imagenNombre = Paths.get(imagenPath).getFileName().toString();
+                String url = "http://10.0.2.2:8080/images/" + URLEncoder.encode(imagenNombre, StandardCharsets.UTF_8);
+                reviewDto.setImagenUrl(url);
+            }
+        }
+
         return RouteHistoryDto.builder()
                 .routeId(route.getId())
                 .origin(route.getOrigin())
@@ -134,6 +150,7 @@ public class RouteService {
                 .payment(calculatedPayment)
                 .status(route.getStatus())
                 .averageSpeed(averageSpeed)
+                .review(reviewDto)
                 .build();
     }
 
