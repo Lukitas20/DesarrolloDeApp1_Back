@@ -32,7 +32,10 @@ public class RouteService {
 
     // Get routes assigned to a specific driver
     public List<Route> getDriverRoutes(User driver) {
-        return routeRepository.findByDriver(driver);
+        // Only return routes that are currently assigned and not completed or cancelled
+        return routeRepository.findByDriver(driver).stream()
+                .filter(route -> "ASSIGNED".equals(route.getStatus()))
+                .collect(Collectors.toList());
     }
 
     // Assign a route to a driver
@@ -94,8 +97,8 @@ public class RouteService {
         // Usa el método existente y filtra con Java Stream
         List<Route> driverRoutes = routeRepository.findByDriver(driver);
         
-        List<Route> completedRoutes = driverRoutes.stream()
-                .filter(route -> "COMPLETED".equals(route.getStatus()))
+        List<Route> completedOrCancelledRoutes = driverRoutes.stream()
+                .filter(route -> "COMPLETED".equals(route.getStatus()) || "CANCELLED".equals(route.getStatus()))
                 .sorted((r1, r2) -> {
                     if (r1.getCompletedAt() == null) return 1;
                     if (r2.getCompletedAt() == null) return -1;
@@ -103,7 +106,7 @@ public class RouteService {
                 })
                 .collect(Collectors.toList());
         
-        return completedRoutes.stream()
+        return completedOrCancelledRoutes.stream()
                 .map(this::convertToHistoryDto)
                 .collect(Collectors.toList());
     }
@@ -131,10 +134,12 @@ public class RouteService {
         // Calcular pago basado en la distancia (ejemplo: $10 por km)
         Double calculatedPayment = route.getDistance() != null ? route.getDistance() * 10 : 0.0;
         
+        String destination = "CANCELLED".equals(route.getStatus()) ? "CANCELADO" : route.getDestination();
+
         return RouteHistoryDto.builder()
                 .routeId(route.getId())
                 .origin(route.getOrigin())
-                .destination(route.getDestination())
+                .destination(destination)
                 .distance(route.getDistance())
                 .assignedAt(route.getAssignedAt())
                 .completedAt(route.getCompletedAt())
@@ -186,12 +191,11 @@ public class RouteService {
             throw new RuntimeException("Failed to process incident photo", e);
         }
         incident.setRoute(route);
-        incidentRepository.save(incident);
-        // Set route status to 'finalizado'
-        route.setStatus("FINALIZADO");
-        route.setCompletedAt(java.time.LocalDateTime.now());
+        // Mark route as cancelled and set completedAt
+        route.setStatus("CANCELLED");
+        route.setCompletedAt(LocalDateTime.now());
         routeRepository.save(route);
-        return incident;
+        return incidentRepository.save(incident);
     }
 
     private void saveImageToLocalFolder(org.springframework.web.multipart.MultipartFile file) throws IOException {
