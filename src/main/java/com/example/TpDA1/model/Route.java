@@ -43,6 +43,12 @@ public class Route {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
+    @Column(name = "confirmation_code")
+    private String confirmationCode; // Código para completar la entrega
+
+    @OneToOne(mappedBy = "route", cascade = CascadeType.ALL)
+    private Package packageInfo;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

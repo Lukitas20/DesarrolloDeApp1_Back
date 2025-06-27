@@ -21,9 +21,23 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<User> authenticatedUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User currentUser = (User) authentication.getPrincipal();
-        return ResponseEntity.ok(currentUser);
+        try {
+            System.out.println("🔄 UserController - Obteniendo usuario autenticado...");
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            
+            if (authentication == null || !authentication.isAuthenticated()) {
+                System.err.println("❌ UserController - Usuario no autenticado");
+                return ResponseEntity.status(401).build();
+            }
+            
+            User currentUser = (User) authentication.getPrincipal();
+            System.out.println("✅ UserController - Usuario obtenido: " + currentUser.getUsername());
+            return ResponseEntity.ok(currentUser);
+        } catch (Exception e) {
+            System.err.println("❌ UserController - Error al obtener usuario: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
     }
 
     @GetMapping("/")
