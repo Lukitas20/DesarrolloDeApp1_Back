@@ -33,6 +33,17 @@ public class RouteController {
             System.out.println("🔄 RouteController - Obteniendo rutas disponibles...");
             List<Route> routes = routeService.getAvailableRoutes();
             System.out.println("✅ RouteController - " + routes.size() + " rutas disponibles encontradas");
+            
+            // Debug: mostrar detalles de las primeras rutas
+            for (int i = 0; i < Math.min(3, routes.size()); i++) {
+                Route route = routes.get(i);
+                System.out.println("🔍 Ruta " + (i+1) + ": ID=" + route.getId() 
+                    + ", Origin='" + route.getOrigin() + "'"
+                    + ", Destination='" + route.getDestination() + "'"
+                    + ", Distance=" + route.getDistance()
+                    + ", Status='" + route.getStatus() + "'");
+            }
+            
             return ResponseEntity.ok(routes);
         } catch (Exception e) {
             System.err.println("❌ RouteController - Error al obtener rutas disponibles: " + e.getMessage());

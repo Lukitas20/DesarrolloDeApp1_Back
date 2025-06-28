@@ -102,7 +102,8 @@ public class RouteService {
     }
     
     public Route createRoute(Route route) {
-        return routeRepository.save(route);
+        Route savedRoute = routeRepository.save(route);
+        return savedRoute;
     }
 
     public Route completeRoute(Long routeId, User driver) {
@@ -119,7 +120,9 @@ public class RouteService {
         
         route.setStatus("COMPLETED");
         route.setCompletedAt(LocalDateTime.now());
-        return routeRepository.save(route);
+        Route savedRoute = routeRepository.save(route);
+        
+        return savedRoute;
     }
 
     public List<RouteHistoryDto> getDriverRouteHistory(User driver) {
@@ -194,7 +197,9 @@ public class RouteService {
         route.setDriver(null);
         route.setAssignedAt(null);
         
-        return routeRepository.save(route);
+        Route savedRoute = routeRepository.save(route);
+        
+        return savedRoute;
     }
 
     // Escanear código QR y desbloquear ruta
@@ -280,7 +285,9 @@ public class RouteService {
         route.setStatus("COMPLETED");
         route.setCompletedAt(LocalDateTime.now());
 
-        return routeRepository.save(route);
+        Route savedRoute = routeRepository.save(route);
+
+        return savedRoute;
     }
 
     // Generar código de confirmación

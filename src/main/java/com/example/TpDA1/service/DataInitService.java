@@ -17,9 +17,18 @@ public class DataInitService implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        System.out.println("🔄 DataInitService - Verificando datos iniciales...");
+        long routeCount = routeRepository.count();
+        System.out.println("📊 DataInitService - Rutas existentes en BD: " + routeCount);
+        
         // Solo ejecutar si no hay datos existentes
-        if (routeRepository.count() == 0) {
+        if (routeCount == 0) {
+            System.out.println("🆕 DataInitService - Inicializando datos de prueba...");
             initializeTestData();
+        } else {
+            System.out.println("✅ DataInitService - Ya existen datos en la BD");
+            // Verificar que las rutas tienen datos válidos
+            validateExistingData();
         }
     }
 
@@ -90,5 +99,36 @@ public class DataInitService implements CommandLineRunner {
         System.out.println("📦 Códigos QR disponibles: PKG001, PKG002, PKG003");
         System.out.println("🚚 Rutas creadas: " + routeRepository.count());
         System.out.println("📋 Paquetes creados: " + packageRepository.count());
+    }
+    
+    private void validateExistingData() {
+        System.out.println("🔍 DataInitService - Validando datos existentes...");
+        
+        // Obtener algunas rutas para verificar que tienen datos válidos
+        var routes = routeRepository.findAll();
+        int validRoutes = 0;
+        int invalidRoutes = 0;
+        
+        for (Route route : routes) {
+            if (route.getOrigin() != null && !route.getOrigin().trim().isEmpty() 
+                && route.getDestination() != null && !route.getDestination().trim().isEmpty()
+                && route.getDistance() != null && route.getDistance() > 0) {
+                validRoutes++;
+                System.out.println("✅ Ruta válida ID: " + route.getId() + " - " + route.getOrigin() + " → " + route.getDestination());
+            } else {
+                invalidRoutes++;
+                System.out.println("❌ Ruta inválida ID: " + route.getId() + " - Origin: '" + route.getOrigin() + "', Destination: '" + route.getDestination() + "', Distance: " + route.getDistance());
+            }
+        }
+        
+        System.out.println("📊 DataInitService - Rutas válidas: " + validRoutes + ", Rutas inválidas: " + invalidRoutes);
+        
+        // Si hay rutas inválidas, limpiar y reinicializar
+        if (invalidRoutes > 0) {
+            System.out.println("🔄 DataInitService - Limpiando datos corruptos y reinicializando...");
+            packageRepository.deleteAll();
+            routeRepository.deleteAll();
+            initializeTestData();
+        }
     }
 } 

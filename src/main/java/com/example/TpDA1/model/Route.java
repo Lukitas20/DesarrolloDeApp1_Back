@@ -1,5 +1,6 @@
 package com.example.TpDA1.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -47,6 +48,7 @@ public class Route {
     private String confirmationCode; // Código para completar la entrega
 
     @OneToOne(mappedBy = "route", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private Package packageInfo;
 
     @PrePersist
