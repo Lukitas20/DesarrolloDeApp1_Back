@@ -26,7 +26,7 @@ public class PackageService {
         Route route = new Route();
         route.setOrigin(dto.getRouteOrigin());
         route.setDestination(dto.getRouteDestination());
-        route.setDistance(dto.getRouteDistance());
+        route.setDistance(dto.getDistance());
         route.setEstimatedDuration(dto.getEstimatedDuration());
         route.setStatus("AVAILABLE");
         
@@ -42,37 +42,24 @@ public class PackageService {
         packageEntity.setDimensions(dto.getDimensions());
         packageEntity.setFragile(dto.getFragile() != null ? dto.getFragile() : false);
         packageEntity.setRoute(savedRoute);
+        packageEntity.setQrCode("TEMP_QR"); // QR temporal
 
-        // 3. Generar QR automáticamente ANTES de guardar
-        String qrCode = qrCodeService.generateQRCodeForPackage("TEMP_" + System.currentTimeMillis());
-        packageEntity.setQrCode(qrCode);
-        
-        // 4. Guardar el paquete con QR
+        // 3. Guardar el paquete
         Package savedPackage = packageRepository.save(packageEntity);
 
-        // 5. Generar QR final con el ID real
-        String finalQrCode = qrCodeService.generateQRCodeForPackage(savedPackage.getId().toString());
+        // 4. Generar QR final con Base64
+        String finalQrCode = qrCodeService.generateQRCodeForPackage(savedPackage);
         savedPackage.setQrCode(finalQrCode);
         
-        // 6. Actualizar el paquete con el QR final
+        // 5. Actualizar el paquete
         savedPackage = packageRepository.save(savedPackage);
 
-        // 7. Mostrar información en logs
-        System.out.println("📦 PAQUETE CREADO EXITOSAMENTE");
-        System.out.println("ID del Paquete: " + savedPackage.getId());
-        System.out.println("ID de la Ruta: " + savedRoute.getId());
-        System.out.println("Ubicación: " + savedPackage.getLocation());
-        System.out.println("Sección: " + savedPackage.getWarehouseSection());
-        System.out.println("Estante: " + savedPackage.getShelfNumber());
-        System.out.println("Destino: " + savedRoute.getDestination());
-        System.out.println("🔑 CÓDIGO QR GENERADO:");
-        System.out.println("Datos del QR: PACKAGE_" + savedPackage.getId());
-        System.out.println("QR Code: " + finalQrCode);
-        System.out.println("==========================================");
+        System.out.println("✅ Paquete creado: " + savedPackage.getId() + " con QR: " + finalQrCode);
 
         return savedPackage;
     }
 
+    @Transactional(readOnly = true)
     public List<Package> getAllPackages() {
         return packageRepository.findAll();
     }
@@ -84,5 +71,30 @@ public class PackageService {
     @Transactional
     public Package updatePackage(Package packageEntity) {
         return packageRepository.save(packageEntity);
+    }
+
+    @Transactional
+    public Package createPackage(Package packageEntity) {
+        return packageRepository.save(packageEntity);
+    }
+
+    @Transactional(readOnly = true)
+    public Package getPackageById(Long id) {
+        return packageRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Package not found"));
+    }
+
+    @Transactional(readOnly = true)
+    public List<Package> getPackagesByRouteId(Long routeId) {
+        return packageRepository.findByRouteId(routeId);
+    }
+
+    @Transactional(readOnly = true)
+    public Package getPackageByQrCode(String qrCode) {
+        List<Package> packages = packageRepository.findByQrCode(qrCode);
+        if (packages.isEmpty()) {
+            throw new RuntimeException("Package not found with QR code: " + qrCode);
+        }
+        return packages.get(0);
     }
 } 

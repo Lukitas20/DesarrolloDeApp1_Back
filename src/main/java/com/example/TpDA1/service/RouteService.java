@@ -65,6 +65,10 @@ public class RouteService {
         return routeRepository.save(route);
     }
 
+    public Route updateRoute(Route route) {
+        return routeRepository.save(route);
+    }
+
     public Route completeRoute(Long routeId, User driver) {
         Route route = routeRepository.findById(routeId)
                 .orElseThrow(() -> new RuntimeException("Route not found"));

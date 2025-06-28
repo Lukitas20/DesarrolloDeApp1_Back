@@ -1,5 +1,6 @@
 package com.example.TpDA1.service;
 
+import com.example.TpDA1.model.Package;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
 import com.google.zxing.WriterException;
@@ -19,10 +20,15 @@ import java.util.Map;
 
 @Service
 public class QRCodeService {
-
-    public String generateQRCode(String data) {
+    
+    public String generateQRCodeForPackage(Package packageEntity) {
+        String qrContent = "PACKAGE_" + packageEntity.getId() + "_" + packageEntity.getDescription();
+        return generateQRCodeImage(qrContent);
+    }
+    
+    public String generateQRCodeImage(String content) {
         try {
-            System.out.println("🔄 Generando QR code para: " + data);
+            System.out.println("🔄 Generando QR code para: " + content);
             
             // Configuración del QR
             Map<EncodeHintType, Object> hints = new HashMap<>();
@@ -32,7 +38,7 @@ public class QRCodeService {
 
             // Crear el QR
             QRCodeWriter qrCodeWriter = new QRCodeWriter();
-            BitMatrix bitMatrix = qrCodeWriter.encode(data, BarcodeFormat.QR_CODE, 200, 200, hints);
+            BitMatrix bitMatrix = qrCodeWriter.encode(content, BarcodeFormat.QR_CODE, 200, 200, hints);
 
             // Convertir a imagen
             BufferedImage qrImage = new BufferedImage(200, 200, BufferedImage.TYPE_INT_RGB);
@@ -68,12 +74,7 @@ public class QRCodeService {
             System.err.println("❌ Error generando QR code: " + e.getMessage());
             e.printStackTrace();
             // Fallback: retornar solo los datos como string
-            return "QR_DATA:" + data;
+            return "QR_DATA:" + content;
         }
-    }
-
-    public String generateQRCodeForPackage(String packageId) {
-        String qrData = "PACKAGE_" + packageId;
-        return generateQRCode(qrData);
     }
 } 
