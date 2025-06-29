@@ -97,4 +97,49 @@ public class PackageService {
         }
         return packages.get(0);
     }
+
+    // Método para buscar paquete por QR code (retorna null si no existe)
+    @Transactional(readOnly = true)
+    public Package findByQrCode(String qrCode) {
+        List<Package> packages = packageRepository.findByQrCode(qrCode);
+        return packages.isEmpty() ? null : packages.get(0);
+    }
+
+    // Método para crear paquete simple (para pruebas)
+    @Transactional
+    public Package createPackage(String description, String destination) {
+        // Crear una ruta simple
+        Route route = new Route();
+        route.setOrigin("Almacén Central");
+        route.setDestination(destination);
+        route.setStatus("AVAILABLE");
+        route.setDistance(10.0); // Distancia por defecto
+        route.setEstimatedDuration(30); // 30 minutos por defecto
+        
+        Route savedRoute = routeRepository.save(route);
+
+        // Crear el paquete
+        Package packageEntity = new Package();
+        packageEntity.setDescription(description);
+        packageEntity.setLocation("Almacén Central");
+        packageEntity.setRoute(savedRoute);
+        packageEntity.setWeight(1.0); // Peso por defecto
+        packageEntity.setDimensions("30x20x15 cm"); // Dimensiones por defecto
+        packageEntity.setFragile(false); // No frágil por defecto
+        packageEntity.setQrCode("TEMP_QR"); // QR temporal
+
+        // Guardar el paquete
+        Package savedPackage = packageRepository.save(packageEntity);
+
+        // Generar QR final
+        String finalQrCode = qrCodeService.generateQRCodeForPackage(savedPackage);
+        savedPackage.setQrCode(finalQrCode);
+        
+        // Actualizar el paquete
+        savedPackage = packageRepository.save(savedPackage);
+
+        System.out.println("✅ Paquete de prueba creado: " + savedPackage.getId() + " con QR: " + finalQrCode);
+
+        return savedPackage;
+    }
 } 
