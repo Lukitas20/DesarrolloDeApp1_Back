@@ -43,6 +43,9 @@ public class User implements UserDetails {
     @Column(name = "password_reset_token_expires_at")
     private LocalDateTime passwordResetTokenExpiresAt;
 
+    private String PushToken;
+
+
     // Constructor para crear un usuario no verificado
     public User(String username, String email, String password) {
         this.username = username;
@@ -80,9 +83,17 @@ public class User implements UserDetails {
         return enabled;
     }
 
- //   @Override
-   // public String getUsername() {
-     //   return this.email;
+    public String getExpoPushToken() {
+        return PushToken;
+    }
+
+    public void setExpoPushToken(String expoPushToken) {
+        this.PushToken = expoPushToken;
+    }
+
+    //   @Override
+    // public String getUsername() {
+    //   return this.email;
     //}
 
 }

@@ -109,7 +109,7 @@ public class AuthenticationService {
             /* if (user.isEnabled()) {
                 throw new RuntimeException("Account is already verified");
             } */
-            
+
             user.setVerificationCode(generateVerificationCode());
             user.setVerificationCodeExpiresAt(LocalDateTime.now().plusHours(1));
             sendVerificationEmail(user);
@@ -138,19 +138,19 @@ public class AuthenticationService {
 
     public boolean verifyPasswordResetCode(String email, String code) {
         User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("Usuario no encontrado."));
-    
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado."));
+
         // Check if code is valid
         if (user.getPasswordResetToken() == null || !user.getPasswordResetToken().equals(code)) {
             return false;
         }
-    
+
         // Check if code has expired
-        if (user.getPasswordResetTokenExpiresAt() == null || 
-            user.getPasswordResetTokenExpiresAt().isBefore(LocalDateTime.now())) {
+        if (user.getPasswordResetTokenExpiresAt() == null ||
+                user.getPasswordResetTokenExpiresAt().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Code has expired");
         }
-    
+
         return true;
     }
 
@@ -160,20 +160,20 @@ public class AuthenticationService {
         if (!verifyPasswordResetCode(email, code)) {
             throw new RuntimeException("Invalid code");
         }
-    
+
         User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-    
-        // Password validation 
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Password validation
         if (newPassword.length() < 8) {
             throw new RuntimeException("Password must be at least 8 characters long");
         }
-    
+
         // Check if password contains at least one number and one letter
         if (!newPassword.matches(".*[0-9].*") || !newPassword.matches(".*[a-zA-Z].*")) {
             throw new RuntimeException("Password must contain at least one number and one letter");
         }
-    
+
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setPasswordResetToken(null);
         user.setPasswordResetTokenExpiresAt(null);
@@ -205,5 +205,9 @@ public class AuthenticationService {
         Random random = new Random();
         int code = random.nextInt(900000) + 100000;
         return String.valueOf(code);
+    }
+    public void savePushToken(User user, String token) {
+        user.setPushToken(token);
+        userRepository.save(user);
     }
 }
