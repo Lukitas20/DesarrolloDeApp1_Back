@@ -1,10 +1,15 @@
 package com.example.TpDA1.dto;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ConfirmationCodeDto {
     private String confirmationCode;
-} 
+    private String message;
+}
