@@ -206,8 +206,4 @@ public class AuthenticationService {
         int code = random.nextInt(900000) + 100000;
         return String.valueOf(code);
     }
-    public void savePushToken(User user, String token) {
-        user.setPushToken(token);
-        userRepository.save(user);
-    }
 }

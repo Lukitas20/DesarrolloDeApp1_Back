@@ -1,8 +1,6 @@
 package com.example.TpDA1.controller;
 
-import com.example.TpDA1.dto.PushTokenDto;
 import com.example.TpDA1.model.User;
-import com.example.TpDA1.service.AuthenticationService;
 import com.example.TpDA1.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -15,10 +13,9 @@ import java.util.List;
 @RestController
 public class UserController {
     private final UserService userService;
-    private final AuthenticationService authenticationService;
-    public UserController(UserService userService, AuthenticationService authenticationService) { //Esto me puede romper
+    
+    public UserController(UserService userService) {
         this.userService = userService;
-        this.authenticationService = authenticationService;
     }
 
     @GetMapping("/me")
@@ -44,27 +41,7 @@ public class UserController {
 
     @GetMapping("/")
     public ResponseEntity<List<User>> allUsers() {
-        List <User> users = userService.allUsers();
+        List<User> users = userService.allUsers();
         return ResponseEntity.ok(users);
-    }
-
-    @PostMapping("/push-token")
-    public ResponseEntity<?> savePushToken(@RequestBody PushTokenDto pushTokenDto) {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return ResponseEntity.status(401).body("Usuario no autenticado");
-            }
-
-            User currentUser = (User) authentication.getPrincipal();
-
-            authenticationService.savePushToken(currentUser, pushTokenDto.getToken());
-
-            return ResponseEntity.ok("Push token guardado");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Error guardando push token");
-        }
     }
 }

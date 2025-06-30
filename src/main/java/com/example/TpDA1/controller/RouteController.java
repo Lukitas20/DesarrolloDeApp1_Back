@@ -78,14 +78,12 @@ public class RouteController {
             @PathVariable("routeId") Long routeId,
             @AuthenticationPrincipal User driver) {
         try {
-            System.out.println("🔄 RouteController - Asignando ruta " + routeId + " al usuario: " + driver.getUsername());
-            Route assignedRoute = routeService.assignRouteToDriver(routeId, driver);
-            System.out.println("✅ RouteController - Ruta asignada exitosamente: " + assignedRoute.getId());
+            System.out.println("🎯 RouteController - Solicitud de asignación de ruta " + routeId + " por " + driver.getUsername());
+            Route assignedRoute = routeService.assignRoute(routeId, driver);
             return ResponseEntity.ok(assignedRoute);
         } catch (Exception e) {
-            System.err.println("❌ RouteController - Error al asignar ruta " + routeId + ": " + e.getMessage());
-            e.printStackTrace();
-            throw e; // Re-lanzar para que el GlobalExceptionHandler lo maneje
+            System.err.println("❌ RouteController - Error asignando ruta: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
     }
 
@@ -93,14 +91,28 @@ public class RouteController {
     public ResponseEntity<Route> completeRoute(
             @PathVariable("routeId") Long routeId,
             @AuthenticationPrincipal User driver) {
-        return ResponseEntity.ok(routeService.completeRoute(routeId, driver));
+        try {
+            System.out.println("✅ RouteController - Solicitud de completar ruta " + routeId + " por " + driver.getUsername());
+            Route completedRoute = routeService.completeRoute(routeId, driver);
+            return ResponseEntity.ok(completedRoute);
+        } catch (Exception e) {
+            System.err.println("❌ RouteController - Error completando ruta: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @PostMapping("/{routeId}/cancel")
     public ResponseEntity<Route> cancelRoute(
             @PathVariable("routeId") Long routeId,
             @AuthenticationPrincipal User driver) {
-        return ResponseEntity.ok(routeService.cancelRoute(routeId, driver));
+        try {
+            System.out.println("🚫 RouteController - Solicitud de cancelar ruta " + routeId + " por " + driver.getUsername());
+            Route cancelledRoute = routeService.cancelRoute(routeId, driver);
+            return ResponseEntity.ok(cancelledRoute);
+        } catch (Exception e) {
+            System.err.println("❌ RouteController - Error cancelando ruta: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @GetMapping("/history")
