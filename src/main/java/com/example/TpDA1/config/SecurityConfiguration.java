@@ -35,7 +35,10 @@ public class SecurityConfiguration {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/routes/health").permitAll()
+                                       
+                        .requestMatchers("/users/**").permitAll()
+                        .requestMatchers("/api/test/**").authenticated()
+                                       
                         .requestMatchers("/routes/**").authenticated()
                         .requestMatchers("/users/**").authenticated()
                         .anyRequest().authenticated()

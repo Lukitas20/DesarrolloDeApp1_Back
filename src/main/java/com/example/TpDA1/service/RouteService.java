@@ -7,6 +7,7 @@ import com.example.TpDA1.model.Route;
 import com.example.TpDA1.model.User;
 import com.example.TpDA1.repository.PackageRepository;
 import com.example.TpDA1.repository.RouteRepository;
+import com.example.TpDA1.repository.UserRepository;
 import com.example.TpDA1.service.RouteNotificationScheduler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class RouteService {
     private final RouteRepository routeRepository;
+    private final UserRepository userRepository;
     private final PackageRepository packageRepository;
     private final RouteNotificationScheduler routeNotificationScheduler;
 
@@ -94,6 +96,10 @@ public class RouteService {
         return savedRoute;
     }
 
+    public Route updateRoute(Route route) {
+        return routeRepository.save(route);
+    }
+  
     @Transactional
     public Route completeRoute(Long routeId, User driver) {
         try {
@@ -318,5 +324,93 @@ public class RouteService {
         Random random = new Random();
         int code = random.nextInt(900000) + 100000; // Código de 6 dígitos
         return String.valueOf(code);
+    }
+
+    // Método para buscar ruta por paquete ID y email de usuario
+    public Route findByPackageIdAndUserEmail(Long packageId, String userEmail) {
+        // Primero buscar el usuario por username para obtener su email real
+        User user = userRepository.findByUsername(userEmail)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + userEmail));
+        
+        // Luego buscar ruta por el email real del usuario
+        return routeRepository.findByPackagesIdAndDriverEmail(packageId, user.getEmail())
+                .orElse(null);
+    }
+
+    // Método para escanear QR y activar ruta
+    public String scanQrAndActivateRoute(Long routeId, String qrCode) {
+        Route route = routeRepository.findById(routeId)
+                .orElseThrow(() -> new RuntimeException("Route not found"));
+        
+        if (!"ASSIGNED".equals(route.getStatus())) {
+            throw new RuntimeException("Route must be assigned before scanning QR");
+        }
+        
+        // Cambiar estado a EN_PROGRESO
+        route.setStatus("EN_PROGRESO");
+        route.setStartedAt(LocalDateTime.now());
+        
+        // Generar código de confirmación
+        String confirmationCode = generateConfirmationCode();
+        route.setConfirmationCode(confirmationCode);
+        
+        routeRepository.save(route);
+        
+        System.out.println("🔓 Ruta activada: " + routeId);
+        System.out.println("📱 Código de confirmación: " + confirmationCode);
+        
+        return confirmationCode;
+    }
+
+    // Método para confirmar entrega
+    public boolean confirmDelivery(Long routeId, String confirmationCode, String userEmail) {
+        Route route = routeRepository.findById(routeId)
+                .orElseThrow(() -> new RuntimeException("Route not found"));
+        
+        // Primero buscar el usuario por username para obtener su email real
+        User user = userRepository.findByUsername(userEmail)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + userEmail));
+        
+        if (route.getDriver() == null || !route.getDriver().getEmail().equals(user.getEmail())) {
+            throw new RuntimeException("Route is not assigned to this user");
+        }
+        
+        if (!"EN_PROGRESO".equals(route.getStatus())) {
+            throw new RuntimeException("Route must be in progress to confirm delivery");
+        }
+        
+        if (!confirmationCode.equals(route.getConfirmationCode())) {
+            return false; // Código incorrecto
+        }
+        
+        // Completar la ruta
+        route.setStatus("COMPLETED");
+        route.setCompletedAt(LocalDateTime.now());
+        routeRepository.save(route);
+        
+        System.out.println("✅ Entrega confirmada: " + routeId);
+        return true;
+    }
+
+    // Método para obtener rutas por email de usuario
+    public List<Route> getRoutesByUserEmail(String userEmail) {
+        // Primero buscar el usuario por username para obtener su email real
+        User user = userRepository.findByUsername(userEmail)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + userEmail));
+        
+        // Luego buscar rutas por el email real del usuario
+        return routeRepository.findByDriverEmail(user.getEmail());
+    }
+
+    // Método para generar código de confirmación
+    private String generateConfirmationCode() {
+        // Generar código de 6 dígitos
+        int code = (int) (Math.random() * 900000) + 100000;
+        return String.valueOf(code);
+    }
+
+    // Método de debug: obtener todas las rutas con drivers y paquetes
+    public List<Route> getAllRoutesForDebug() {
+        return routeRepository.findAllWithDriverAndPackages();
     }
 }

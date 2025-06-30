@@ -44,12 +44,15 @@ public class Route {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
+    @Column(name = "started_at")
+    private LocalDateTime startedAt;
+
     @Column(name = "confirmation_code")
     private String confirmationCode; // Código para completar la entrega
 
-    @OneToOne(mappedBy = "route", cascade = CascadeType.ALL)
-    @JsonManagedReference
-    private Package packageInfo;
+    @OneToMany(mappedBy = "route", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<Package> packages;
+
 
     @PrePersist
     protected void onCreate() {
