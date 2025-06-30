@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/routes")
+@RequestMapping("/api/routes")
 @RequiredArgsConstructor
 public class RouteController {
     private final RouteService routeService;
