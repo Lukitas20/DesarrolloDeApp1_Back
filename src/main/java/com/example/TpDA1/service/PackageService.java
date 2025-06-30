@@ -54,8 +54,6 @@ public class PackageService {
         // 5. Actualizar el paquete
         savedPackage = packageRepository.save(savedPackage);
 
-        System.out.println("✅ Paquete creado: " + savedPackage.getId() + " con QR: " + finalQrCode);
-
         return savedPackage;
     }
 
@@ -137,8 +135,6 @@ public class PackageService {
         
         // Actualizar el paquete
         savedPackage = packageRepository.save(savedPackage);
-
-        System.out.println("✅ Paquete de prueba creado: " + savedPackage.getId() + " con QR: " + finalQrCode);
 
         return savedPackage;
     }

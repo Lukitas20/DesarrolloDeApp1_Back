@@ -28,8 +28,6 @@ public class QRCodeService {
     
     public String generateQRCodeImage(String content) {
         try {
-            System.out.println("🔄 Generando QR code para: " + content);
-            
             // Configuración del QR
             Map<EncodeHintType, Object> hints = new HashMap<>();
             hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.L);
@@ -67,11 +65,9 @@ public class QRCodeService {
             String base64Image = Base64.getEncoder().encodeToString(imageBytes);
 
             String result = "data:image/png;base64," + base64Image;
-            System.out.println("✅ QR code generado exitosamente. Longitud Base64: " + base64Image.length());
             return result;
             
         } catch (WriterException | IOException e) {
-            System.err.println("❌ Error generando QR code: " + e.getMessage());
             e.printStackTrace();
             // Fallback: retornar solo los datos como string
             return "QR_DATA:" + content;

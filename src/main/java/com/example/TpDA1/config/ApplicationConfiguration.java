@@ -20,11 +20,8 @@ public class ApplicationConfiguration {
 
     @Bean
     UserDetailsService userDetailsService() {
-        return username -> {
-            System.out.println("[DEBUG] Buscando usuario con: " + username);
-            return userRepository.findByUsername(username)
+        return username -> userRepository.findByUsername(username)
              .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
-        };
     }
 
     @Bean

@@ -50,7 +50,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             final String authHeader = request.getHeader("Authorization");
 
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                logger.debug("No authentication token found in request");
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -72,9 +71,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    logger.debug("Authentication successful for user: {}", username);
-                } else {
-                    logger.warn("Invalid JWT token for user: {}", username);
                 }
             }
             

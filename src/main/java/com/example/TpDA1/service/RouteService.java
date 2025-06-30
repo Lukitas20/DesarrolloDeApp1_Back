@@ -193,9 +193,6 @@ public class RouteService {
         
         routeRepository.save(route);
         
-        System.out.println("🔓 Ruta activada: " + routeId);
-        System.out.println("📱 Código de confirmación: " + confirmationCode);
-        
         return confirmationCode;
     }
 
@@ -225,7 +222,6 @@ public class RouteService {
         route.setCompletedAt(LocalDateTime.now());
         routeRepository.save(route);
         
-        System.out.println("✅ Entrega confirmada: " + routeId);
         return true;
     }
 
