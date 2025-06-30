@@ -319,12 +319,6 @@ public class RouteService {
         return savedRoute;
     }
 
-    // Generar código de confirmación
-    private String generateConfirmationCode() {
-        Random random = new Random();
-        int code = random.nextInt(900000) + 100000; // Código de 6 dígitos
-        return String.valueOf(code);
-    }
 
     // Método para buscar ruta por paquete ID y email de usuario
     public Route findByPackageIdAndUserEmail(Long packageId, String userEmail) {

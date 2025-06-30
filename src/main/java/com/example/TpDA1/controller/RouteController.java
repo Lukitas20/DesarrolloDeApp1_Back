@@ -27,11 +27,6 @@ public class RouteController {
     private final PackageService packageService;
     private final QRCodeService qrCodeService;
 
-    // Health check endpoint
-    @GetMapping("/health")
-    public ResponseEntity<String> healthCheck() {
-        return ResponseEntity.ok("Backend is running! 🚀");
-    }
 
     // Get all packages
     @GetMapping("/packages")
