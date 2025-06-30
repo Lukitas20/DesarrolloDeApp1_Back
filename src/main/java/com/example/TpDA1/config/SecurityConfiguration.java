@@ -37,7 +37,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/auth/**").permitAll()
                                        
                         .requestMatchers("/users/**").permitAll()
-                        .requestMatchers("/api/test/**").authenticated()
+                        .requestMatchers("/test/**").authenticated()
                                        
                         .requestMatchers("/routes/**").authenticated()
                         .requestMatchers("/users/**").authenticated()

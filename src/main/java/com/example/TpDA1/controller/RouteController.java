@@ -17,7 +17,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/routes")
@@ -101,7 +103,45 @@ public class RouteController {
         }
     }
 
-    // Confirmar entrega escaneando QR
+    // Escanear QR y generar código de confirmación
+    @PostMapping("/scan-qr")
+    public ResponseEntity<?> scanQRAndGenerateCode(@RequestParam String qrCode, @AuthenticationPrincipal User driver) {
+        try {
+            // Buscar el paquete por QR code
+            Package packageEntity = packageService.getPackageByQrCode(qrCode);
+            
+            // Verificar que el paquete pertenece a una ruta del driver
+            Route route = packageEntity.getRoute();
+            if (route.getDriver() == null || !route.getDriver().getId().equals(driver.getId())) {
+                return ResponseEntity.badRequest().body("❌ Este paquete no pertenece a tus rutas asignadas");
+            }
+            
+            // Cambiar estado de la ruta a EN_PROGRESO y generar código
+            if ("ASSIGNED".equals(route.getStatus())) {
+                // Generar código de confirmación
+                String confirmationCode = generateConfirmationCode();
+                route.setConfirmationCode(confirmationCode);
+                route.setStatus("IN_PROGRESS");
+                route.setStartedAt(LocalDateTime.now());
+                routeService.updateRoute(route);
+                
+                return ResponseEntity.ok(Map.of(
+                    "message", "✅ QR escaneado exitosamente! Ruta cambiada a EN_PROGRESO",
+                    "confirmationCode", confirmationCode,
+                    "routeId", route.getId(),
+                    "packageId", packageEntity.getId()
+                ));
+            } else {
+                return ResponseEntity.badRequest().body("❌ La ruta no está en estado ASIGNADO");
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error escaneando QR: " + e.getMessage());
+            return ResponseEntity.badRequest().body("❌ Error: " + e.getMessage());
+        }
+    }
+
+    // Confirmar entrega con código
     @PostMapping("/confirm-delivery")
     public ResponseEntity<String> confirmDelivery(@RequestParam String qrCode, @AuthenticationPrincipal User driver) {
         try {
@@ -228,5 +268,12 @@ public class RouteController {
     public ResponseEntity<List<RouteHistoryDto>> getRouteHistory(   
             @AuthenticationPrincipal User driver) {
         return ResponseEntity.ok(routeService.getDriverRouteHistory(driver));
+    }
+
+    // Método para generar código de confirmación
+    private String generateConfirmationCode() {
+        // Generar código de 6 dígitos
+        int code = (int) (Math.random() * 900000) + 100000;
+        return String.valueOf(code);
     }
 }

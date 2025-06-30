@@ -332,6 +332,7 @@ public class RouteService {
     }
 
     // Método para escanear QR y activar ruta
+    @Transactional
     public String scanQrAndActivateRoute(Long routeId, String qrCode) {
         Route route = routeRepository.findById(routeId)
                 .orElseThrow(() -> new RuntimeException("Route not found"));
@@ -340,8 +341,8 @@ public class RouteService {
             throw new RuntimeException("Route must be assigned before scanning QR");
         }
         
-        // Cambiar estado a EN_PROGRESO
-        route.setStatus("EN_PROGRESO");
+        // Cambiar estado a IN_PROGRESS (no EN_PROGRESO)
+        route.setStatus("IN_PROGRESS");
         route.setStartedAt(LocalDateTime.now());
         
         // Generar código de confirmación
@@ -357,6 +358,7 @@ public class RouteService {
     }
 
     // Método para confirmar entrega
+    @Transactional
     public boolean confirmDelivery(Long routeId, String confirmationCode, String userEmail) {
         Route route = routeRepository.findById(routeId)
                 .orElseThrow(() -> new RuntimeException("Route not found"));
@@ -369,7 +371,7 @@ public class RouteService {
             throw new RuntimeException("Route is not assigned to this user");
         }
         
-        if (!"EN_PROGRESO".equals(route.getStatus())) {
+        if (!"IN_PROGRESS".equals(route.getStatus())) {
             throw new RuntimeException("Route must be in progress to confirm delivery");
         }
         
