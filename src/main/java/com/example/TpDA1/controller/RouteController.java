@@ -10,7 +10,6 @@ import com.example.TpDA1.model.Package;
 import com.example.TpDA1.model.Route;
 import com.example.TpDA1.model.User;
 import com.example.TpDA1.service.PackageService;
-import com.example.TpDA1.service.QRCodeService;
 import com.example.TpDA1.service.RouteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,12 +21,11 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/routes")
+@RequestMapping("/api/routes")
 @RequiredArgsConstructor
 public class RouteController {
     private final RouteService routeService;
     private final PackageService packageService;
-    private final QRCodeService qrCodeService;
 
 
     // Get all packages
@@ -35,7 +33,7 @@ public class RouteController {
     public ResponseEntity<List<Package>> getAllPackages() {
         return ResponseEntity.ok(packageService.getAllPackages());
     }
-
+  
     // Crear paquetes de prueba con QR
     @PostMapping("/create-test-packages")
     public ResponseEntity<String> createTestPackages() {
@@ -140,32 +138,27 @@ public class RouteController {
             return ResponseEntity.badRequest().body("❌ Error: " + e.getMessage());
         }
     }
-
-    // Confirmar entrega con código
+  
     @PostMapping("/confirm-delivery")
     public ResponseEntity<String> confirmDelivery(@RequestParam String qrCode, @AuthenticationPrincipal User driver) {
         try {
-            // Buscar el paquete por QR code
             Package packageEntity = packageService.getPackageByQrCode(qrCode);
-            
-            // Verificar que el paquete pertenece a una ruta del driver
             Route route = packageEntity.getRoute();
+            
             if (route.getDriver() == null || !route.getDriver().getId().equals(driver.getId())) {
-                return ResponseEntity.badRequest().body("❌ Este paquete no pertenece a tus rutas asignadas");
+                return ResponseEntity.badRequest().body("Este paquete no pertenece a tus rutas asignadas");
             }
             
-            // Cambiar estado de la ruta a EN_PROGRESO
             if ("ASSIGNED".equals(route.getStatus())) {
                 route.setStatus("IN_PROGRESS");
                 routeService.updateRoute(route);
-                return ResponseEntity.ok("✅ Entrega confirmada! Ruta cambiada a EN_PROGRESO");
+                return ResponseEntity.ok("Entrega confirmada! Ruta cambiada a EN_PROGRESO");
             } else {
-                return ResponseEntity.badRequest().body("❌ La ruta no está en estado ASIGNADO");
+                return ResponseEntity.badRequest().body("La ruta no está en estado ASIGNADO");
             }
             
         } catch (Exception e) {
-            System.err.println("❌ Error confirmando entrega: " + e.getMessage());
-            return ResponseEntity.badRequest().body("❌ Error: " + e.getMessage());
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
 
@@ -222,6 +215,7 @@ public class RouteController {
         }
         return ResponseEntity.ok(routeService.createRoute(route));
     }
+
     @PostMapping("/{routeId}/assign")
     public ResponseEntity<Route> assignRoute(
             @PathVariable("routeId") Long routeId,
@@ -265,8 +259,7 @@ public class RouteController {
     }
 
     @GetMapping("/history")
-    public ResponseEntity<List<RouteHistoryDto>> getRouteHistory(   
-            @AuthenticationPrincipal User driver) {
+    public ResponseEntity<List<RouteHistoryDto>> getRouteHistory(@AuthenticationPrincipal User driver) {
         return ResponseEntity.ok(routeService.getDriverRouteHistory(driver));
     }
 
