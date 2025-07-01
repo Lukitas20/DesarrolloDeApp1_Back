@@ -7,11 +7,13 @@ import com.example.TpDA1.service.AuthenticationService;
 import com.example.TpDA1.service.JwtService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
+import java.util.Map;
 
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 @RestController
 public class AuthenticationController {
     private final JwtService jwtService;
@@ -120,5 +122,19 @@ public class AuthenticationController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
         }
+    }
+    
+    // GET /auth/profile - Obtener perfil (alias de /users/me)
+    @GetMapping("/profile")
+    public ResponseEntity<User> getProfile(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(user);
+    }
+    
+    // POST /auth/logout - Cerrar sesión
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, String>> logout() {
+        // En una implementación real, aquí invalidarías el token
+        // Por ahora solo retornamos un mensaje de éxito
+        return ResponseEntity.ok(Collections.singletonMap("message", "Logout successful"));
     }
 }

@@ -134,4 +134,33 @@ public class PackageService {
 
         return savedPackage;
     }
+    
+    // Método para confirmar entrega de un paquete
+    @Transactional
+    public void confirmDelivery(Long packageId) {
+        Package packageEntity = getPackageById(packageId);
+        // Por ahora solo guardamos el paquete sin cambios específicos
+        // En el futuro se puede agregar un campo status al modelo
+        packageRepository.save(packageEntity);
+    }
+    
+    // Método para actualizar el estado de un paquete
+    @Transactional
+    public Package updatePackageStatus(Long packageId, String newStatus) {
+        Package packageEntity = getPackageById(packageId);
+        // Por ahora solo retornamos el paquete sin cambios específicos
+        // En el futuro se puede agregar un campo status al modelo
+        return packageRepository.save(packageEntity);
+    }
+    
+    // Método para validar un código QR
+    @Transactional(readOnly = true)
+    public boolean validateQrCode(String qrCode) {
+        try {
+            Package packageEntity = getPackageByQrCode(qrCode);
+            return packageEntity != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 } 

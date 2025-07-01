@@ -41,6 +41,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/test/**").authenticated()
                                        
                         .requestMatchers("/routes/**").authenticated()
+                        .requestMatchers("/packages/**").authenticated()
                         .requestMatchers("/users/**").authenticated()
                         .anyRequest().authenticated()
                 )

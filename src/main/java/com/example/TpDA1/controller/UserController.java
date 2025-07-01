@@ -8,8 +8,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
-@RequestMapping("/api/users")
+@RequestMapping("/users")
 @RestController
 public class UserController {
     private final UserService userService;

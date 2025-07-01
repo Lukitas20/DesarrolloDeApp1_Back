@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/routes")
+@RequestMapping("/routes")
 @RequiredArgsConstructor
 public class RouteController {
     private final RouteService routeService;
@@ -261,6 +261,30 @@ public class RouteController {
     @GetMapping("/history")
     public ResponseEntity<List<RouteHistoryDto>> getRouteHistory(@AuthenticationPrincipal User driver) {
         return ResponseEntity.ok(routeService.getDriverRouteHistory(driver));
+    }
+    
+    // GET /routes/{routeId}/status - Estado de ruta
+    @GetMapping("/{routeId}/status")
+    public ResponseEntity<Map<String, String>> getRouteStatus(@PathVariable Long routeId) {
+        try {
+            // Por ahora retornamos un estado por defecto
+            // En el futuro se puede implementar getRouteById en RouteService
+            return ResponseEntity.ok(Map.of("status", "UNKNOWN"));
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    // POST /routes/{routeId}/activate - Activar ruta
+    @PostMapping("/{routeId}/activate")
+    public ResponseEntity<Route> activateRoute(@PathVariable Long routeId, @AuthenticationPrincipal User driver) {
+        try {
+            // Por ahora retornamos un error
+            // En el futuro se puede implementar getRouteById en RouteService
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     // Método para generar código de confirmación
