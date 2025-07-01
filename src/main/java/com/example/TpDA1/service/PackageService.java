@@ -89,18 +89,14 @@ public class PackageService {
 
     @Transactional(readOnly = true)
     public Package getPackageByQrCode(String qrCode) {
-        List<Package> packages = packageRepository.findByQrCode(qrCode);
-        if (packages.isEmpty()) {
-            throw new RuntimeException("Package not found with QR code: " + qrCode);
-        }
-        return packages.get(0);
+        return packageRepository.findByQrCode(qrCode)
+                .orElseThrow(() -> new RuntimeException("Package not found with QR code: " + qrCode));
     }
 
     // Método para buscar paquete por QR code (retorna null si no existe)
     @Transactional(readOnly = true)
     public Package findByQrCode(String qrCode) {
-        List<Package> packages = packageRepository.findByQrCode(qrCode);
-        return packages.isEmpty() ? null : packages.get(0);
+        return packageRepository.findByQrCode(qrCode).orElse(null);
     }
 
     // Método para crear paquete simple (para pruebas)

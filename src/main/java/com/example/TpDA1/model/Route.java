@@ -1,5 +1,6 @@
 package com.example.TpDA1.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -47,10 +48,11 @@ public class Route {
     private LocalDateTime startedAt;
 
     @Column(name = "confirmation_code")
-    private String confirmationCode;
+    private String confirmationCode; // Código para completar la entrega
 
     @OneToMany(mappedBy = "route", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private java.util.List<Package> packages;
+
 
     @PrePersist
     protected void onCreate() {

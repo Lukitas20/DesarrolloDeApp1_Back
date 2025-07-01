@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/test")
+@RequestMapping("/test")
 @CrossOrigin(origins = "*")
 public class TestController {
 
@@ -78,7 +78,7 @@ public class TestController {
             System.out.println("Ruta encontrada: " + route.getId());
             System.out.println("Estado de ruta: " + route.getStatus());
             
-            // Simular el escaneo exitoso
+            // Simular el escaneo exitoso - usar el método correcto para rutas asignadas
             String confirmationCode = routeService.scanQrAndActivateRoute(route.getId(), qrCode);
             
             System.out.println("=== ESCANEO EXITOSO ===");

@@ -48,38 +48,62 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
         try {
             final String authHeader = request.getHeader("Authorization");
+            final String requestPath = request.getRequestURI();
 
+            // Permitir acceso sin token a endpoints públicos
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                logger.debug("No authentication token found for path: {}", requestPath);
                 filterChain.doFilter(request, response);
                 return;
             }
 
             final String jwt = authHeader.substring(7);
+            
+            // Validación básica del token
+            if (jwt.isEmpty() || jwt.split("\\.").length != 3) {
+                logger.warn("Invalid JWT token format for path: {}", requestPath);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             final String username = jwtService.extractUsername(jwt);
 
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             
             if (username != null && authentication == null) {
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                
-                if (jwtService.isTokenValid(jwt, userDetails)) {
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities()
-                    );
+                try {
+                    logger.debug("Attempting to load user details for: {}", username);
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                     
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                    if (jwtService.isTokenValid(jwt, userDetails)) {
+                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
+                        
+                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                        logger.debug("Authentication successful for user: {}", username);
+                    } else {
+                        logger.warn("Invalid JWT token for user: {} on path: {}", username, requestPath);
+                    }
+                } catch (org.springframework.dao.InvalidDataAccessResourceUsageException dbException) {
+                    logger.error("Database error loading user details for: {} - {}", username, dbException.getMessage());
+                    // No propagar el error, simplemente continuar sin autenticación
+                } catch (Exception userLoadException) {
+                    logger.error("Error loading user details for: {} - {}", username, userLoadException.getMessage());
+                    // No establecer autenticación si hay error cargando el usuario
                 }
             }
             
             filterChain.doFilter(request, response);
             
         } catch (Exception e) {
-            logger.error("Error processing JWT authentication", e);
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Authentication failed: " + e.getMessage());
+            logger.error("Critical error in JWT authentication filter: {}", e.getMessage());
+            // En lugar de devolver error 401, continuar sin autenticación
+            // Esto permite que endpoints públicos funcionen incluso con errores
+            filterChain.doFilter(request, response);
         }
     }
 }

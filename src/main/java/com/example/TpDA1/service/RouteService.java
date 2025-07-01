@@ -1,16 +1,23 @@
 package com.example.TpDA1.service;
 
+import com.example.TpDA1.dto.PackageInfoDto;
 import com.example.TpDA1.dto.RouteHistoryDto;
+import com.example.TpDA1.model.Package;
 import com.example.TpDA1.model.Route;
 import com.example.TpDA1.model.User;
+import com.example.TpDA1.repository.PackageRepository;
 import com.example.TpDA1.repository.RouteRepository;
 import com.example.TpDA1.repository.UserRepository;
+import com.example.TpDA1.service.RouteNotificationScheduler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 @Service
@@ -18,6 +25,8 @@ import java.util.stream.Collectors;
 public class RouteService {
     private final RouteRepository routeRepository;
     private final UserRepository userRepository;
+    private final PackageRepository packageRepository;
+    private final RouteNotificationScheduler routeNotificationScheduler;
 
     // Get all available routes (not assigned to any driver)
     public List<Route> getAvailableRoutes() {
@@ -30,19 +39,35 @@ public class RouteService {
     }
 
     // Assign a route to a driver
-    public Route assignRouteToDriver(Long routeId, User driver) {
-        Route route = routeRepository.findById(routeId)
-                .orElseThrow(() -> new RuntimeException("Route not found"));
+    @Transactional
+    public Route assignRoute(Long routeId, User driver) {
+        try {
+            Route route = routeRepository.findById(routeId)
+                .orElseThrow(() -> new RuntimeException("Ruta no encontrada"));
 
-        if (!"AVAILABLE".equals(route.getStatus())) {
-            throw new RuntimeException("Route is not available for assignment");
+            if (!"AVAILABLE".equals(route.getStatus())) {
+                throw new RuntimeException("La ruta no está disponible");
+            }
+
+            route.setDriver(driver);
+            route.setStatus("ASSIGNED");
+            route.setAssignedAt(LocalDateTime.now());
+
+            Route savedRoute = routeRepository.save(route);
+            System.out.println("✅ Ruta " + routeId + " asignada a " + driver.getUsername());
+            
+            // Notificación inmediata
+            try {
+                routeNotificationScheduler.notifyRouteAssigned(savedRoute);
+            } catch (Exception e) {
+                System.err.println("⚠️ Error enviando notificación de asignación: " + e.getMessage());
+            }
+            
+            return savedRoute;
+        } catch (Exception e) {
+            System.err.println("❌ Error asignando ruta: " + e.getMessage());
+            throw e;
         }
-
-        route.setDriver(driver);
-        route.setStatus("ASSIGNED");
-        route.setAssignedAt(LocalDateTime.now());
-
-        return routeRepository.save(route);
     }
 
     // Update route status
@@ -64,28 +89,49 @@ public class RouteService {
     }
     
     public Route createRoute(Route route) {
-        return routeRepository.save(route);
+        Route savedRoute = routeRepository.save(route);
+        
+        // Sin notificaciones al crear rutas - solo el scheduler each 2 minutos
+        
+        return savedRoute;
     }
 
     public Route updateRoute(Route route) {
         return routeRepository.save(route);
     }
-
+  
+    @Transactional
     public Route completeRoute(Long routeId, User driver) {
-        Route route = routeRepository.findById(routeId)
-                .orElseThrow(() -> new RuntimeException("Route not found"));
-        
-        if (route.getDriver() == null || !route.getDriver().getId().equals(driver.getId())) {
-            throw new RuntimeException("This route is not assigned to you");
+        try {
+            Route route = routeRepository.findById(routeId)
+                .orElseThrow(() -> new RuntimeException("Ruta no encontrada"));
+
+            if (!route.getDriver().getId().equals(driver.getId())) {
+                throw new RuntimeException("No puedes completar una ruta que no es tuya");
+            }
+
+            if (!"ASSIGNED".equals(route.getStatus()) && !"IN_PROGRESS".equals(route.getStatus())) {
+                throw new RuntimeException("La ruta debe estar asignada o en progreso para completarla");
+            }
+
+            route.setStatus("COMPLETED");
+            route.setCompletedAt(LocalDateTime.now());
+
+            Route savedRoute = routeRepository.save(route);
+            System.out.println("✅ Ruta " + routeId + " completada por " + driver.getUsername());
+            
+            // Notificación inmediata
+            try {
+                routeNotificationScheduler.notifyRouteCompleted(savedRoute);
+            } catch (Exception e) {
+                System.err.println("⚠️ Error enviando notificación de completación: " + e.getMessage());
+            }
+            
+            return savedRoute;
+        } catch (Exception e) {
+            System.err.println("❌ Error completando ruta: " + e.getMessage());
+            throw e;
         }
-        
-        if (!"ASSIGNED".equals(route.getStatus())) {
-            throw new RuntimeException("Only assigned routes can be completed");
-        }
-        
-        route.setStatus("COMPLETED");
-        route.setCompletedAt(LocalDateTime.now());
-        return routeRepository.save(route);
     }
 
     public List<RouteHistoryDto> getDriverRouteHistory(User driver) {
@@ -143,25 +189,136 @@ public class RouteService {
                 .build();
     }
 
+    @Transactional
     public Route cancelRoute(Long routeId, User driver) {
+        try {
+            Route route = routeRepository.findById(routeId)
+                .orElseThrow(() -> new RuntimeException("Ruta no encontrada"));
+
+            if (!route.getDriver().getId().equals(driver.getId())) {
+                throw new RuntimeException("No puedes cancelar una ruta que no es tuya");
+            }
+
+            if ("COMPLETED".equals(route.getStatus())) {
+                throw new RuntimeException("No puedes cancelar una ruta completada");
+            }
+
+            route.setDriver(null);
+            route.setStatus("AVAILABLE");
+            route.setAssignedAt(null);
+
+            Route savedRoute = routeRepository.save(route);
+            System.out.println("❌ Ruta " + routeId + " cancelada por " + driver.getUsername());
+            
+            // Notificación inmediata
+            try {
+                routeNotificationScheduler.notifyRouteCancelled(savedRoute);
+            } catch (Exception e) {
+                System.err.println("⚠️ Error enviando notificación de cancelación: " + e.getMessage());
+            }
+            
+            return savedRoute;
+        } catch (Exception e) {
+            System.err.println("❌ Error cancelando ruta: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    // Escanear código QR y desbloquear ruta
+    @Transactional(timeout = 30)
+    public PackageInfoDto scanQRAndUnlockRoute(String qrCode, User driver) {
+        // Buscar el paquete por código QR
+        Package packageEntity = packageRepository.findByQrCode(qrCode)
+                .orElseThrow(() -> new RuntimeException("Código QR no válido"));
+
+        Route route = packageEntity.getRoute();
+        if (route == null) {
+            throw new RuntimeException("No hay ruta asociada a este paquete");
+        }
+
+        if (!"AVAILABLE".equals(route.getStatus())) {
+            throw new RuntimeException("Esta ruta no está disponible");
+        }
+
+        // Mostrar información del paquete por consola (simulación)
+        System.out.println("=== INFORMACIÓN DEL PAQUETE ===");
+        System.out.println("Código QR: " + packageEntity.getQrCode());
+        System.out.println("Ubicación en depósito: " + packageEntity.getLocation());
+        System.out.println("Sección: " + packageEntity.getWarehouseSection());
+        System.out.println("Estante: " + packageEntity.getShelfNumber());
+        System.out.println("Descripción: " + packageEntity.getDescription());
+        System.out.println("Peso: " + packageEntity.getWeight() + " kg");
+        System.out.println("Dimensiones: " + packageEntity.getDimensions());
+        System.out.println("Frágil: " + (packageEntity.getFragile() ? "Sí" : "No"));
+        System.out.println("=== RUTA ASOCIADA ===");
+        System.out.println("Origen: " + route.getOrigin());
+        System.out.println("Destino: " + route.getDestination());
+        System.out.println("Distancia: " + route.getDistance() + " km");
+        System.out.println("================================");
+
+        // Asignar automáticamente la ruta al conductor
+        assignRoute(route.getId(), driver);
+
+        // Retornar información del paquete
+        return PackageInfoDto.builder()
+                .packageId(packageEntity.getId())
+                .qrCode(packageEntity.getQrCode())
+                .location(packageEntity.getLocation())
+                .description(packageEntity.getDescription())
+                .warehouseSection(packageEntity.getWarehouseSection())
+                .shelfNumber(packageEntity.getShelfNumber())
+                .weight(packageEntity.getWeight())
+                .dimensions(packageEntity.getDimensions())
+                .fragile(packageEntity.getFragile())
+                .createdAt(packageEntity.getCreatedAt())
+                .routeId(route.getId())
+                .routeOrigin(route.getOrigin())
+                .routeDestination(route.getDestination())
+                .routeDistance(route.getDistance())
+                .routeStatus(route.getStatus())
+                .build();
+    }
+
+    // Completar ruta con código de confirmación
+    @Transactional(timeout = 30)
+    public Route completeRouteWithCode(Long routeId, String confirmationCode, User driver) {
         Route route = routeRepository.findById(routeId)
                 .orElseThrow(() -> new RuntimeException("Route not found"));
-        
+
         if (route.getDriver() == null || !route.getDriver().getId().equals(driver.getId())) {
-            throw new RuntimeException("This route is not assigned to you");
+            throw new RuntimeException("Esta ruta no está asignada a usted");
         }
-        
+
         if (!"ASSIGNED".equals(route.getStatus())) {
-            throw new RuntimeException("Only assigned routes can be canceled");
+            throw new RuntimeException("Solo se pueden completar rutas asignadas");
         }
-        
-        // Volver a estado disponible
-        route.setStatus("AVAILABLE");
-        route.setDriver(null);
-        route.setAssignedAt(null);
-        
-        return routeRepository.save(route);
+
+        if (!confirmationCode.equals(route.getConfirmationCode())) {
+            throw new RuntimeException("Código de confirmación incorrecto");
+        }
+
+        // Mostrar código de confirmación por consola (simulación del comprador)
+        System.out.println("=== CÓDIGO DE CONFIRMACIÓN ===");
+        System.out.println("El comprador proporciona el código: " + confirmationCode);
+        System.out.println("✅ Código verificado correctamente");
+        System.out.println("🎉 Entrega completada exitosamente");
+        System.out.println("==============================");
+
+        route.setStatus("COMPLETED");
+        route.setCompletedAt(LocalDateTime.now());
+
+        Route savedRoute = routeRepository.save(route);
+
+        // Notificación inmediata
+        try {
+            routeNotificationScheduler.notifyRouteCompleted(savedRoute);
+        } catch (Exception e) {
+            System.err.println("⚠️ Error enviando notificación de completación: " + e.getMessage());
+        }
+
+        return savedRoute;
     }
+
 
     // Método para buscar ruta por paquete ID y email de usuario
     public Route findByPackageIdAndUserEmail(Long packageId, String userEmail) {
@@ -175,6 +332,7 @@ public class RouteService {
     }
 
     // Método para escanear QR y activar ruta
+    @Transactional
     public String scanQrAndActivateRoute(Long routeId, String qrCode) {
         Route route = routeRepository.findById(routeId)
                 .orElseThrow(() -> new RuntimeException("Route not found"));
@@ -183,8 +341,8 @@ public class RouteService {
             throw new RuntimeException("Route must be assigned before scanning QR");
         }
         
-        // Cambiar estado a EN_PROGRESO
-        route.setStatus("EN_PROGRESO");
+        // Cambiar estado a IN_PROGRESS (no EN_PROGRESO)
+        route.setStatus("IN_PROGRESS");
         route.setStartedAt(LocalDateTime.now());
         
         // Generar código de confirmación
@@ -197,6 +355,7 @@ public class RouteService {
     }
 
     // Método para confirmar entrega
+    @Transactional
     public boolean confirmDelivery(Long routeId, String confirmationCode, String userEmail) {
         Route route = routeRepository.findById(routeId)
                 .orElseThrow(() -> new RuntimeException("Route not found"));
@@ -209,7 +368,7 @@ public class RouteService {
             throw new RuntimeException("Route is not assigned to this user");
         }
         
-        if (!"EN_PROGRESO".equals(route.getStatus())) {
+        if (!"IN_PROGRESS".equals(route.getStatus())) {
             throw new RuntimeException("Route must be in progress to confirm delivery");
         }
         

@@ -2,6 +2,7 @@ package com.example.TpDA1.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
+
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -11,31 +12,30 @@ import java.time.LocalDateTime;
 @Table(name = "packages")
 @Data
 public class Package {
-    
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
     @Column(nullable = false)
-    private String location;
+    private String location; // Ubicación en el depósito
 
     @Column(nullable = false)
-    private String description;
+    private String description; // Descripción del paquete
 
     @Column(name = "warehouse_section")
-    private String warehouseSection;
+    private String warehouseSection; // Sección del depósito (A, B, C, etc.)
 
     @Column(name = "shelf_number")
-    private String shelfNumber;
+    private String shelfNumber;  // Número de estante (A1, B2, etc.)
     
     @Column(nullable = false)
-    private Double weight;
+    private Double weight; // Peso en kg
 
     @Column(nullable = false)
-    private String dimensions;
+    private String dimensions; // Dimensiones (ej: "30x20x15 cm")
 
     @Column(nullable = false)
-    private Boolean fragile;
+    private Boolean fragile; // Si es frágil
 
     @Column(name = "qr_code", nullable = false, columnDefinition = "TEXT")
     private String qrCode;
